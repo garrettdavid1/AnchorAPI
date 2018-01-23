@@ -4,6 +4,9 @@ var db = require('./database.js');
 var models = require('./models.js');
 models.init();
 var bodyParser = require('body-parser');
+const {ObjectId} = require('mongodb'); // or ObjectID 
+// or var ObjectId = require('mongodb').ObjectId if node version < 6
+const safeObjectId = s => ObjectId.isValid(s) ? new ObjectId(s) : null;
 db.connect('Anchor');
 var app = express();
 
@@ -74,11 +77,14 @@ app.post('/saveTransaction', function(req, res, next){
     db.get('Month', {'monthNum': date.getMonth(), 'year': date.getFullYear()}, function(result){
         var month = result[0];
         month.transactions = month.transactions === undefined ? [] : month.transactions;
-        if(transaction.id !== undefined){
-            db.update('Transaction', {'_id' : transaction.id}, transaction, function(result){
+        if(transaction._id !== undefined && transaction._id !== ''){
+            transaction._id = safeObjectId(transaction._id);
+            db.update('Transaction', {'_id' : transaction._id}, {'transName' : transaction.transName, 'transAmount': transaction.transAmount,
+        'transType': transaction.transType, 'transDate': new Date(transaction.transDate)}, function(result){
                 updateMonthWithTransAndSend(month, transaction, date, res);
             });
         }else{
+            if(transaction._id === '') delete transaction._id;
             db.add('Transaction', transaction, function(result){
                 updateMonthWithTransAndSend(month, transaction, date, res);
             });
@@ -90,13 +96,17 @@ app.post('/saveTransaction', function(req, res, next){
 
 /*:::::::::::::::: Month Helper Functions ::::::::::::::::*/
 function updateMonthWithTransAndSend(month, transaction, date, res){
+    transaction.transDate = new Date(transaction.transDate);
     if(month.transactions.length > 0){
         var thisDate;
         var inserted = false;
-        transaction.transDate = new Date(transaction.transDate);
         for(var i = 0; i < month.transactions.length; i++){
             thisDate = new Date(month.transactions[i].transDate);
-            if(thisDate.getTime() > transaction.transDate.getTime()){
+            if(month.transactions[i]._id.equals(transaction._id)){
+                month.transactions.splice(i, 1, transaction);
+                inserted = true;
+                break;
+            }else if(thisDate.getTime() > transaction.transDate.getTime()){
                 month.transactions.splice(i, 0, transaction);
                 inserted = true;
                 break;
