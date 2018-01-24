@@ -79,23 +79,31 @@ app.post('/saveTransaction', function(req, res, next){
         month.transactions = month.transactions === undefined ? [] : month.transactions;
         if(transaction._id !== undefined && transaction._id !== ''){
             transaction._id = safeObjectId(transaction._id);
+            var oldAmount = transaction.transAmount;
             db.update('Transaction', {'_id' : transaction._id}, {'transName' : transaction.transName, 'transAmount': transaction.transAmount,
         'transType': transaction.transType, 'transDate': new Date(transaction.transDate)}, function(result){
-                updateMonthWithTransAndSend(month, transaction, date, res);
+                updateMonthWithTransAndSend(month, transaction, date, oldAmount, res);
             });
         }else{
             if(transaction._id === '') delete transaction._id;
             db.add('Transaction', transaction, function(result){
-                updateMonthWithTransAndSend(month, transaction, date, res);
+                updateMonthWithTransAndSend(month, transaction, date, oldAmount, res);
             });
         }
         
     })
-})
+});
+
+app.get('/deleteTransaction/:date/:transId', function(req, res, next){
+    var id = safeObjectId(req.params.transId);
+    db.delete('Transaction', {'_id': id}, function(result){
+        removeTransFromMonth(req.params.date, result, id, res);
+    });
+});
 /*:::::::::::::::: End of Routes ::::::::::::::::*/
 
 /*:::::::::::::::: Month Helper Functions ::::::::::::::::*/
-function updateMonthWithTransAndSend(month, transaction, date, res){
+function updateMonthWithTransAndSend(month, transaction, date, oldAmount, res){
     transaction.transDate = new Date(transaction.transDate);
     if(month.transactions.length > 0){
         var thisDate;
@@ -118,8 +126,35 @@ function updateMonthWithTransAndSend(month, transaction, date, res){
     }else{
         month.transactions.push(transaction);
     }
-    db.update('Month', {'monthNum': date.getMonth(), 'year': date.getFullYear()}, {'transactions': month.transactions, 'endingBal': parseFloat(month.endingBal) + parseFloat(transaction.transAmount)}, function(result){
+    var endingBal = parseFloat(month.startingBal);
+    month.transactions.forEach(function(trans){
+        endingBal += parseFloat(trans.transAmount);
+    });
+    month.endingBal = endingBal;
+    // oldAmount = oldAmount === undefined ? 0 : oldAmount;
+    // console.log(parseFloat(month.endingBal));
+    // console.log(parseFloat(oldAmount));
+    // console.log(parseFloat(transaction.transAmount));
+    // month.endingBal = parseFloat(month.endingBal) - parseFloat(oldAmount) + parseFloat(transaction.transAmount);
+    db.update('Month', {'monthNum': date.getMonth(), 'year': date.getFullYear()}, {'transactions': month.transactions, 'endingBal': parseFloat(month.endingBal)}, function(result){
         res.send(JSON.stringify(month));
+    });
+}
+
+function removeTransFromMonth(date, transaction, transId, res){
+    date = new Date(date);
+    db.get('Month', {'monthNum': date.getMonth(), 'year': date.getFullYear()}, function(result){
+        var month = result[0];
+        for(var i = 0; i < month.transactions.length; i++){
+            if(month.transactions[i]._id.equals(transId)){
+                month.transactions.splice(i, 1);
+                break;
+            }
+        }
+
+        db.update('Month', {'monthNum': date.getMonth(), 'year': date.getFullYear()}, {'transactions': month.transactions, 'endingBal': parseFloat(month.endingBal) - parseFloat(transaction.transAmount)}, function(result){
+            res.send(JSON.stringify(month));
+        });
     });
 }
 /*:::::::::::::::: End of Month Helper Functions ::::::::::::::::*/
