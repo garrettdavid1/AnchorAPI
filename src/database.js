@@ -2,7 +2,7 @@ var database = (function () {
     var Database = function () {
         var self = this;
         self.db;
-        this.connect = function(dbName) {
+        this.connect = function(dbName, callback) {
             const MongoClient = require('mongodb').MongoClient;
             const assert = require('assert');
 
@@ -15,6 +15,7 @@ var database = (function () {
                 console.log("Connected successfully to server");
 
                 self.db = client.db(dbName);
+                if(callback !== undefined) callback(self.db);
             });
         }
 
@@ -70,9 +71,9 @@ var database = (function () {
     var dbInstance;
 
     return {
-        connect: function (dbName) {
+        connect: function (dbName, callback) {
             dbInstance = new Database();
-            dbInstance.connect(dbName);
+            dbInstance.connect(dbName, callback);
         },
         add: function(collection, data, callback){
             dbInstance.add(collection, data, callback);
