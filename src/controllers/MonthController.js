@@ -34,8 +34,7 @@ monthHandler = (function () {
                 if (month[0] === undefined) {
                     self.db.getAll('Month', function (result) {
                         var today = new Date();
-                        month = monthController.newMonth(monthNum, year, 0)
-                        month.isFirstAvailableMonth = true;
+                        month = monthController.newMonth(monthNum, year, 0);
 
                         if (monthNum !== today.getMonth() || year !== today.getFullYear()) {
                             var latestMonth = result[result.length - 1];
@@ -77,7 +76,7 @@ monthHandler = (function () {
                 month.transactions.push(transaction);
             }
             
-            
+
             db.update('Month', {'monthNum': date.getMonth(), 'year': date.getFullYear()}, {'transactions': month.transactions, 'endingBal': self.getEndingBal(month.startingBal, month.transactions)}, function(result){
                 res.send(JSON.stringify(month));
             });
