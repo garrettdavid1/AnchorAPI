@@ -33,18 +33,34 @@ var database = (function () {
 
         };
 
-        this.get = function(collectionName, queryObj, callback){
+        this.get = function(collectionName, queryObj, sortBy, callback){
             let collection = self.db.collection(collectionName);
-            collection.find(queryObj).toArray(function(err, result){
-                if(callback !== undefined) callback(result);
-            });
+
+            if(sortBy !== undefined && sortBy !== null){
+                collection.find(queryObj).sort(sortBy).toArray(function(err, result){
+                    if(callback !== undefined) callback(result);
+                });
+            } else{
+                collection.find(queryObj).toArray(function(err, result){
+                    if(callback !== undefined) callback(result);
+                });
+            }
+            
         }
 
         this.getAll = function(collectionName, callback){
             let collection = self.db.collection(collectionName);
-            collection.find({}).toArray(function(err, result){
-                if(callback !== undefined) callback(result);
-            });
+
+            if(sortBy !== undefined && sortBy !== null){
+                collection.find({}).sort(sortBy).toArray(function(err, result){
+                    if(callback !== undefined) callback(result);
+                });
+            }else{
+                collection.find({}).toArray(function(err, result){
+                    if(callback !== undefined) callback(result);
+                });
+            }
+            
         }
 
         this.update = function(collectionName, queryObj, updateObj, callback){
@@ -78,11 +94,11 @@ var database = (function () {
         add: function(collection, data, callback){
             dbInstance.add(collection, data, callback);
         },
-        get: function(collection, queryObj, callback){
-            dbInstance.get(collection, queryObj, callback);
+        get: function(collection, queryObj, sortBy, callback){
+            dbInstance.get(collection, queryObj, sortBy, callback);
         }, 
-        getAll: function(collectionName, callback){
-            dbInstance.getAll(collectionName, callback);
+        getAll: function(collectionName, sortBy, callback){
+            dbInstance.getAll(collectionName, sortBy, callback);
         },
         update: function(collection, queryObj, updateObj, callback){
             dbInstance.update(collection, queryObj, updateObj, callback);

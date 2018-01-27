@@ -47,21 +47,29 @@ app.get('/', function(req, res, next){
 
 app.get('/getMonthData/:month/:year', function(req, res, next){
     res.setHeader('Content-Type', 'application/json');
-    monthCtrl.getMonthData(req.params, res);
+    monthCtrl.getMonthData(req.params, function(month){
+        res.send(JSON.stringify(month));
+    });
 });
 
 app.get('/initStartingBal/:val/:date', function(req, res, next){
     res.setHeader('Content-Type', 'application/json');
-    monthCtrl.createInitialMonth(req.params.date, req.params.val, res);
+    monthCtrl.createInitialMonth(req.params.date, req.params.val, function(month){
+        res.send(JSON.stringify(month));
+    });
 });
 
 app.post('/saveTransaction', function(req, res, next){
     res.setHeader('Content-Type', 'application/json');
-    transCtrl.saveTransaction(req.body, res);
+    transCtrl.saveTransaction(req.body, function(month){
+        res.send(JSON.stringify(month));
+    });
 });
 
 app.get('/deleteTransaction/:date/:transId', function(req, res, next){
-    transCtrl.deleteTransaction(req.params, res);
+    transCtrl.deleteTransaction(req.params, function(month){
+        res.send(JSON.stringify(month));
+    });
 });
 /*:::::::::::::::: End of Routes ::::::::::::::::*/
 
