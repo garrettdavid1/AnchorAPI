@@ -1,10 +1,10 @@
 monthHandler = (function () {
     var MonthController = function(){
         var self = this;
-        self.db;
         self.monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-        self.newMonth = function(monthNum, year, startingBal){
+        self.newMonth = function(userId, monthNum, year, startingBal){
             return {
+                'userId': userId,
                 'firstDayOfMonth': new Date(year, monthNum, 1, 0, 0, 0, 0),
                 'monthName': self.monthNames[monthNum],
                 'monthNum': monthNum,
@@ -17,27 +17,23 @@ monthHandler = (function () {
             }
         }
 
-        self.createInitialMonth = function(date, startingBal, callback){
+        self.createInitialMonth = function(userId, date, startingBal, callback){
             var today = new Date(date);
-            var month = self.newMonth(today.getMonth(), today.getFullYear(), startingBal);
+            var month = self.newMonth(userId, today.getMonth(), today.getFullYear(), startingBal);
             month.isFirstAvailableMonth = true;
             db.add('Month', month, function(result){
             });
-            if(callback !== undefined){
-                callback(month);
-            } else{
-                return month;
-            }
+            lib.handleResult(month, callback);
         };
 
-        self.getMonthData = function (params, callback) {
+        self.getMonthData = function (userId, params, callback) {
             var monthNum = parseInt(params.month);
             var year = parseInt(params.year);
-            self.db.get('Month', { 'monthNum': monthNum, 'year': year }, null, function (result) {
+            db.get('Month', { 'userId': userId, 'monthNum': monthNum, 'year': year }, null, function (result) {
                 var month = result;
                 if (month[0] === undefined) {
-                    self.db.get('Month', {firstDayOfMonth: {'$lt': new Date(year, monthNum, 1, 0, 0, 0, 0)}}, {firstDayOfMonth: 1}, function (result) {
-                        month = monthController.newMonth(monthNum, year, 0);
+                    db.get('Month', {'userId': userId, 'firstDayOfMonth': {'$lt': new Date(year, monthNum, 1, 0, 0, 0, 0)}}, {firstDayOfMonth: 1}, function (result) {
+                        month = monthController.newMonth(userId, monthNum, year, 0);
                         month.wasNull = true;
 
                         var latestMonth = result[result.length - 1];
@@ -45,27 +41,19 @@ monthHandler = (function () {
                             month.startingBal = latestMonth.endingBal;
                         }
 
-                        if (callback !== undefined) {
-                            callback(month);
-                        } else {
-                            return month;
-                        }
+                        lib.handleResult(month, callback);
                     })
                 } else {
                     month = month[0];
-                    self.db.get('Month', {firstDayOfMonth: {'$lt': month.firstDayOfMonth}}, {firstDayOfMonth: 1}, function(result){
+                    db.get('Month', {'userId': userId, 'firstDayOfMonth': {'$lt': month.firstDayOfMonth}}, {'firstDayOfMonth': 1}, function(result){
                         month.wasNull = false;
                         if(result.length > 0){
                             var prevMonth = result[result.length - 1];
                             month.startingBal = prevMonth.endingBal;
-                            self.updateMonth(month, callback);
+                            self.updateMonth(userId, month, callback);
                         }else{
                             month = self.sortMonthlyTransactions(month);
-                            if (callback !== undefined) {
-                                callback(month);
-                            } else {
-                                return month;
-                            }
+                            lib.handleResult(month, callback);
                         }
                     });
                     
@@ -73,27 +61,23 @@ monthHandler = (function () {
             });
         };
 
-        self.createNewMonthWithTransaction = function(date, transaction, callback){
+        self.createNewMonthWithTransaction = function(userId, date, transaction, callback){
             var beginningOfTheMonth = new Date(date.getTime());
             beginningOfTheMonth.setDate(1);
             var twoYearsAgo = new Date(beginningOfTheMonth.getTime());
             twoYearsAgo.setFullYear(date.getFullYear() - 2);
 
-            db.get('Month', { firstDayOfMonth: { "$lt": beginningOfTheMonth, "$gt": twoYearsAgo } }, {firstDayOfMonth: 1}, function (result) {
+            db.get('Month', { 'userId': userId, 'firstDayOfMonth': { "$lt": beginningOfTheMonth, "$gt": twoYearsAgo } }, {'firstDayOfMonth': 1}, function (result) {
                 var prevMonthWithData = result[result.length - 1];
-                var month = self.newMonth(date.getMonth(), date.getFullYear(), prevMonthWithData.endingBal);
+                var month = self.newMonth(userId, date.getMonth(), date.getFullYear(), prevMonthWithData.endingBal);
                 month.transactions.push(transaction);
                 month.endingBal = self.getEndingBal(month.startingBal, month.transactions);
                 db.add('Month', month);
-                if(callback !== undefined){
-                    callback(month);
-                } else{
-                    return month;
-                }
+                lib.handleResult(month, callback);
             });
         }
 
-        self.updateMonthWithTrans = function(month, transaction, date, callback){
+        self.updateMonthWithTrans = function(userId, month, transaction, date, callback){
             transaction.transDate = new Date(transaction.transDate);
             if(month.transactions.length > 0){
                 var inserted = false;
@@ -124,25 +108,23 @@ monthHandler = (function () {
                 month.transactions.push(transaction);
             }
             
-            self.updateMonth(month, callback);
+            self.updateMonth(userId, month, callback);
         };
 
-        self.updateMonth = function(month, callback){
-            db.update('Month', {'monthNum': month.firstDayOfMonth.getMonth(), 'year': month.firstDayOfMonth.getFullYear()}, {'transactions': month.transactions, 'startingBal': month.startingBal, 'endingBal': self.getEndingBal(month.startingBal, month.transactions)}, function(result){
+        self.updateMonth = function(userId, month, callback){
+            db.update('Month', {'userId': userId, 'monthNum': month.firstDayOfMonth.getMonth(), 'year': month.firstDayOfMonth.getFullYear()}, {'userId': userId, 'transactions': month.transactions, 'startingBal': month.startingBal, 'endingBal': self.getEndingBal(month.startingBal, month.transactions)}, function(result){
                 month = self.sortMonthlyTransactions(month);
-                if(callback !== undefined){
-                    callback(month);
-                } else{
-                    return month;
-                }
+                lib.handleResult(month, callback);
             });
         }
 
         self.getEndingBal = function(startingBal, transactions){
             var endingBal = parseFloat(startingBal);
-            transactions.forEach(function(trans){
-                endingBal += parseFloat(trans.transAmount);
-            });
+            if(transactions.length > 0){
+                transactions.forEach(function(trans){
+                    endingBal += parseFloat(trans.transAmount);
+                });
+            }
             return endingBal;
         }
 
@@ -180,24 +162,23 @@ monthHandler = (function () {
     var monthController;
 
     return {
-        init: function(db){
-            monthController = new MonthController(db);
-            monthController.db = db;
+        init: function(){
+            monthController = new MonthController();
         },
-        newMonth: function (month, year, startingBal) {
-            return monthController.newMonth(month, year, startingBal);
+        newMonth: function (userId, month, year, startingBal) {
+            return monthController.newMonth(userId, month, year, startingBal);
         },
         getMonthName: function(monthNum){
             return monthController.monthNames[monthNum];
         },
-        createInitialMonth: function(date, startingBal, callback){
-            return monthController.createInitialMonth(date, startingBal, callback);
+        createInitialMonth: function(userId, date, startingBal, callback){
+            return monthController.createInitialMonth(userId, date, startingBal, callback);
         },
-        getMonthData: function(params, callback){
-            return monthController.getMonthData(params, callback);
+        getMonthData: function(userId, params, callback){
+            return monthController.getMonthData(userId, params, callback);
         },
-        updateMonthWithTrans: function(month, transaction, date, callback){
-            return monthController.updateMonthWithTrans(month, transaction, date, callback);
+        updateMonthWithTrans: function(userId, month, transaction, date, callback){
+            return monthController.updateMonthWithTrans(userId, month, transaction, date, callback);
         },
         getEndingBal: function(startingBal, transactions){
             return monthController.getEndingBal(startingBal, transactions);
@@ -205,8 +186,8 @@ monthHandler = (function () {
         sortMonthlyTransactions: function(month){
             return monthController.sortMonthlyTransactions(month);
         },
-        createNewMonthWithTransaction: function(date, transaction, callback){
-            return monthController.createNewMonthWithTransaction(date, transaction, callback);
+        createNewMonthWithTransaction: function(userId, date, transaction, callback){
+            return monthController.createNewMonthWithTransaction(userId, date, transaction, callback);
         }
     }
 })();
