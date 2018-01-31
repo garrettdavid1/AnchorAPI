@@ -87,7 +87,6 @@ app.get('/getMonthData/:month/:year', function(req, res, next){
     res.setHeader('Content-Type', 'application/json');
     if(lib.exists(req.session.userId)){
         monthCtrl.getMonthData(req.session.userId, req.params, function(month){
-            // console.log('Username: ' + req.session.userName);
             month.userName = req.session.userName;
             res.send(JSON.stringify(month));
         });
@@ -98,7 +97,6 @@ app.get('/getMonthData/:month/:year', function(req, res, next){
 
 app.get('/initStartingBal/:val/:date', function(req, res, next){
     res.setHeader('Content-Type', 'application/json');
-    console.log('UserId in initStartingBal: ' + req.session.userId);
     monthCtrl.createInitialMonth(req.session.userId, req.params.date, req.params.val, function(month){
         res.send(JSON.stringify(month));
     });
@@ -124,22 +122,32 @@ app.post('/register', function(req, res, next){
 });
 
 app.post('/login', function(req, res, next){
-    accountCtrl.login(req.body.email, req.body.password, function(result){
-        var localDateTime = new Date(req.body.date);
-        var expireTime = new Date(localDateTime.getTime());
-        expireTime.setHours(localDateTime.getHours() + 72);
-        expireTime.setHours(0);
-        expireTime.setMinutes(0);
-        expireTime.setSeconds(0);
-        expireTime.setMilliseconds(0);
-        req.session.userId = result.user.userId;
-        req.session.cookie.expires = expireTime;
-        req.session.userName = result.user.userName;
-        delete result.user.userId;
+    if(req.session.userId){
         req.session.save(function(err){
             res.redirect('/getMonthData/' + new Date().getMonth() + '/' + new Date().getFullYear());
         });
-    });
+    } else{
+        if(lib.exists(req.body.password)){
+            accountCtrl.login(req.body.email, req.body.password, function(result){
+                var localDateTime = new Date(req.body.date);
+                var expireTime = new Date(localDateTime.getTime());
+                expireTime.setHours(localDateTime.getHours() + 72);
+                expireTime.setHours(0);
+                expireTime.setMinutes(0);
+                expireTime.setSeconds(0);
+                expireTime.setMilliseconds(0);
+                req.session.userId = result.user.userId;
+                req.session.cookie.expires = expireTime;
+                req.session.userName = result.user.userName;
+                delete result.user.userId;
+                req.session.save(function(err){
+                    res.redirect('/getMonthData/' + new Date().getMonth() + '/' + new Date().getFullYear());
+                });
+            });
+        }else{
+            res.send(JSON.stringify({'result': 'failure', 'message': 'Invalid session'}));
+        }
+    }
 });
 
 app.get('/logout', function(req, res, next){
