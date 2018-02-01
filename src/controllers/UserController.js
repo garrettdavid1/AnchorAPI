@@ -26,7 +26,12 @@ userHandler = (function () {
 
         self.createUser = function(user, callback){
             db.add('User', user, function(result){
-                lib.handleResult(result, callback);
+                var user = result.ops[0];
+                if(lib.exists(user)){
+                    lib.handleResult({'result': 'success', 'user': {'userName': user.userName, 'userId': user._id}}, callback);
+                }else{
+                    lib.handleResult({ 'result': 'failure', 'message': 'Incorrect email or password.' }, callback);
+                }
             });
         };
 

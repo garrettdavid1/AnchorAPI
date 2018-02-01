@@ -67,10 +67,10 @@ app.use(session({
     saveUninitialized: true,
     store: new MongoStore({
         url: 'mongodb://localhost:27017/Anchor',
-        ttl: 4 * 24 * 60 * 60 //4 days
+        ttl: 24 * 60 * 60 //1 day
     }),
     cookie: {
-        maxAge: 4 * 24 * 60 * 60 * 1000, 
+        maxAge:  60 * 60 * 1000, //1 hour
         httpOnly: true, path: '/',
     }
 }));
@@ -116,8 +116,23 @@ app.get('/deleteTransaction/:date/:transId', function(req, res, next){
 });
 
 app.post('/register', function(req, res, next){
-    accountCtrl.registerUser(req.body.userName, req.body.password, req.body.email, function(user){
-        res.send(JSON.stringify(user));
+    accountCtrl.registerUser(req.body.userName, req.body.password, req.body.email, function(result){
+        var localDateTime = new Date(req.body.date);
+        var expireTime = new Date(localDateTime.getTime());
+        expireTime.setHours(localDateTime.getHours() + 72);
+        expireTime.setHours(0);
+        expireTime.setMinutes(0);
+        expireTime.setSeconds(0);
+        expireTime.setMilliseconds(0);
+        req.session.userId = result.user.userId;
+        req.session.cookie.expires = expireTime;
+        req.session.userName = result.user.userName;
+        delete result.user.userId;
+        if(lib.exists(result.user)){
+            res.send(JSON.stringify({'result': 'success'}));
+        } else{
+            res.send(JSON.stringify({'result': 'failure'}));
+        }
     });
 });
 
