@@ -67,7 +67,8 @@ app.use(session({
     saveUninitialized: true,
     store: new MongoStore({
         url: 'mongodb://localhost:27017/Anchor',
-        ttl: 24 * 60 * 60 //1 day
+        ttl: 1 * 60 * 60 //1 hour
+
     }),
     cookie: {
         maxAge:  60 * 60 * 1000, //1 hour
@@ -144,20 +145,25 @@ app.post('/login', function(req, res, next){
     } else{
         if(lib.exists(req.body.password)){
             accountCtrl.login(req.body.email, req.body.password, function(result){
-                var localDateTime = new Date(req.body.date);
-                var expireTime = new Date(localDateTime.getTime());
-                expireTime.setHours(localDateTime.getHours() + 72);
-                expireTime.setHours(0);
-                expireTime.setMinutes(0);
-                expireTime.setSeconds(0);
-                expireTime.setMilliseconds(0);
-                req.session.userId = result.user.userId;
-                req.session.cookie.expires = expireTime;
-                req.session.userName = result.user.userName;
-                delete result.user.userId;
-                req.session.save(function(err){
-                    res.redirect('/getMonthData/' + new Date().getMonth() + '/' + new Date().getFullYear());
-                });
+                if(result.result === 'failure'){
+                    res.send(JSON.stringify(result));
+                }else{
+                    var localDateTime = new Date(req.body.date);
+                    var expireTime = new Date(localDateTime.getTime());
+                    expireTime.setHours(localDateTime.getHours() + 72);
+                    expireTime.setHours(0);
+                    expireTime.setMinutes(0);
+                    expireTime.setSeconds(0);
+                    expireTime.setMilliseconds(0);
+                    req.session.userId = result.user.userId;
+                    req.session.cookie.expires = expireTime;
+                    req.session.userName = result.user.userName;
+                    delete result.user.userId;
+                    req.session.save(function(err){
+                        res.redirect('/getMonthData/' + new Date().getMonth() + '/' + new Date().getFullYear());
+                    });
+                }
+                
             });
         }else{
             res.send(JSON.stringify({'result': 'failure', 'message': 'Invalid session'}));

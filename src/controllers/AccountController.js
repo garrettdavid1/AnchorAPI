@@ -14,14 +14,19 @@ accountHandler = (function () {
 
         self.login = function(email, password, callback){
             userCtrl.getUserByEmail(email, function (result) {
-                var user = result;
-                bcrypt.compare(password, user.password, function (err, res) {
-                    if (res === true) {
-                        lib.handleResult({'result': 'success', 'user': {'userName': user.userName, 'userId': user._id}}, callback);
-                    } else {
-                        lib.handleResult({ 'result': 'failure', 'message': 'Incorrect email or password.' }, callback);
-                    }
-                })
+                if(lib.exists(result)){
+                    var user = result;
+                    bcrypt.compare(password, user.password, function (err, res) {
+                        if (res === true) {
+                            lib.handleResult({'result': 'success', 'user': {'userName': user.userName, 'userId': user._id}}, callback);
+                        } else {
+                            lib.handleResult({ 'result': 'failure', 'message': 'Incorrect email or password.' }, callback);
+                        }
+                    });
+                }else{
+                    lib.handleResult({ 'result': 'failure', 'message': 'Incorrect email or password.' }, callback);
+                }
+                
             });
         }
     }
