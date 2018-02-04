@@ -36,6 +36,9 @@ libHandler = (function () {
         },
         port: function(){
             return process.env.PORT || 1337;
+        },
+        allowedOrigins: function(){
+            return process.env['ALLOWED_ORIGINS'] || 'http://192.168.1.68:3000'
         }
     }
 })();
