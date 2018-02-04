@@ -31,12 +31,12 @@ monthHandler = (function () {
             var year = parseInt(params.year);
             db.get('Month', { 'userId': userId, 'monthNum': monthNum, 'year': year }, null, function (result) {
                 var month = result;
-                if (month[0] === undefined) {
+                if (month === null || month[0] === undefined) {
                     db.get('Month', {'userId': userId, 'firstDayOfMonth': {'$lt': new Date(year, monthNum, 1, 0, 0, 0, 0)}}, {firstDayOfMonth: 1}, function (result) {
                         month = monthController.newMonth(userId, monthNum, year, 0);
                         month.wasNull = true;
 
-                        var latestMonth = result[result.length - 1];
+                        var latestMonth = result !== null ? result[result.length - 1] : undefined;
                         if(latestMonth !== undefined && latestMonth !== null){
                             month.startingBal = latestMonth.endingBal;
                         }

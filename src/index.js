@@ -14,7 +14,7 @@ var config = require('./appconfig.js');
     self.accountCtrl = require('./controllers/AccountController.js');
     self.lib = require('./helpers/lib.js');
     self.db = require('./database.js');
-    self.db.connect('Anchor', initControllers(self.db));
+    self.db.connect('anchor', initControllers(self.db));
     self.safeObjectId = s => ObjectId.isValid(s) ? new ObjectId(s) : null;
 
 
@@ -66,7 +66,7 @@ app.use(session({
     resave: false,
     saveUninitialized: true,
     store: new MongoStore({
-        url: 'mongodb://localhost:27017/Anchor',
+        url: config.mongoConnectionString,
         ttl: 1 * 60 * 60 //1 hour
 
     }),
