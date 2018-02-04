@@ -1,4 +1,9 @@
-var config = require('./appconfig.js');
+var config;
+try{
+    config = require('./appconfig.js');
+} catch(err){
+    config = null;
+}
 
 var database = (function () {
     var Database = function () {
@@ -9,7 +14,7 @@ var database = (function () {
             const assert = require('assert');
 
             // Connection URL
-            const url = config.mongoConnectionString;
+            const url = lib.mongoConnectionString(config);
 
             // Use connect method to connect to the server
             MongoClient.connect(url, function (err, client) {

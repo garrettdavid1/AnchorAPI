@@ -27,6 +27,12 @@ libHandler = (function () {
         },
         handleResult: function(obj, callback){
             return lib.handleResult(obj, callback);
+        },
+        sessionSecret: function(config){
+            return lib.exists(config) ? config.sessionSecret : process.env['SESSION_SECRET'];
+        },
+        mongoConnectionString: function(config){
+            return lib.exists(config) ? config.mongoConnectionString : process.env['MONGO_CONNECTION_STRING'];
         }
     }
 })();

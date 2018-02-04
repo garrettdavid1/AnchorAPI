@@ -4,7 +4,12 @@ var app = express();
 const {ObjectId} = require('mongodb');
 var session = require('express-session');
 var MongoStore = require('connect-mongo')(session);
-var config = require('./appconfig.js');
+var config;
+try{
+    config = require('./appconfig.js');
+}catch(err){
+    config = null;
+}
 
 (function(monthController, transController){
     var self = this;
@@ -62,11 +67,11 @@ app.use(function (req, res, next) {
 
 app.use(session({
     name: 'anchorSession',
-    secret: config.sessionSecret,
+    secret: lib.sessionSecret(config),
     resave: false,
     saveUninitialized: true,
     store: new MongoStore({
-        url: config.mongoConnectionString,
+        url: lib.mongoConnectionString(config),
         ttl: 1 * 60 * 60 //1 hour
 
     }),
