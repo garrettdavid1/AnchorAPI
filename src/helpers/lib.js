@@ -33,6 +33,9 @@ libHandler = (function () {
         },
         mongoConnectionString: function(config){
             return lib.exists(config) ? config.mongoConnectionString : process.env['MONGO_CONNECTION_STRING'];
+        },
+        port: function(){
+            return process.env.PORT || 1337;
         }
     }
 })();
