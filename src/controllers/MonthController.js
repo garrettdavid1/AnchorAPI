@@ -11,6 +11,8 @@ monthHandler = (function () {
                 'year': year,
                 'startingBal': parseFloat(startingBal),
                 'endingBal': parseFloat(startingBal),
+                'totalEarnings': parseFloat(0),
+                'totalExpenses': parseFloat(0),
                 'transactions': [],
                 'wasNull': false,
                 'isFirstAvailableMonth': false
@@ -72,6 +74,7 @@ monthHandler = (function () {
                 var month = self.newMonth(userId, date.getMonth(), date.getFullYear(), prevMonthWithData.endingBal);
                 month.transactions.push(transaction);
                 month.endingBal = self.getEndingBal(month.startingBal, month.transactions);
+                month = getTotalEarningsAndExpenses(month);
                 db.add('Month', month);
                 lib.handleResult(month, callback);
             });
@@ -112,7 +115,9 @@ monthHandler = (function () {
         };
 
         self.updateMonth = function(userId, month, callback){
-            db.update('Month', {'userId': userId, 'monthNum': month.firstDayOfMonth.getMonth(), 'year': month.firstDayOfMonth.getFullYear()}, {'userId': userId, 'transactions': month.transactions, 'startingBal': month.startingBal, 'endingBal': self.getEndingBal(month.startingBal, month.transactions)}, function(result){
+            month.endingBal = self.getEndingBal(month.startingBal, month.transactions);
+            month = getTotalEarningsAndExpenses(month);
+            db.update('Month', {'userId': userId, 'monthNum': month.firstDayOfMonth.getMonth(), 'year': month.firstDayOfMonth.getFullYear()}, {'userId': userId, 'transactions': month.transactions, 'startingBal': month.startingBal, 'endingBal': month.endingBal, 'totalEarnings': month.totalEarnings, 'totalExpenses': month.totalExpenses}, function(result){
                 month = self.sortMonthlyTransactions(month);
                 lib.handleResult(month, callback);
             });
@@ -155,6 +160,24 @@ monthHandler = (function () {
                 }
                 month.transactions = newTransactionsArray;
             }
+            return month;
+        }
+
+        function getTotalEarningsAndExpenses(month){
+            var totalExpenses = parseFloat(0);
+            var totalEarnings = parseFloat(0);
+
+            month.transactions.forEach(function(trans){
+                if(trans.transType === 'expense'){
+                    totalExpenses -= parseFloat(trans.transAmount);
+                } else{
+                    totalEarnings += parseFloat(trans.transAmount);
+                }
+            })
+
+            month.totalExpenses = totalExpenses;
+            month.totalEarnings = totalEarnings;
+
             return month;
         }
     }

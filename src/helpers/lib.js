@@ -16,23 +16,23 @@ libHandler = (function () {
 
     }
 
-    var lib;
+    var library;
 
     return {
         init: function(){
-            lib = new Library();
+            library = new Library();
         },
         exists: function(variable){
-            return lib.exists(variable);
+            return library.exists(variable);
         },
         handleResult: function(obj, callback){
-            return lib.handleResult(obj, callback);
+            return library.handleResult(obj, callback);
         },
         sessionSecret: function(config){
-            return lib.exists(config) ? config.sessionSecret : process.env['SESSION_SECRET'];
+            return library.exists(config) ? config.sessionSecret : process.env['SESSION_SECRET'];
         },
         mongoConnectionString: function(config){
-            return lib.exists(config) ? config.mongoConnectionString : process.env['MONGO_CONNECTION_STRING'];
+            return library.exists(config) ? config.mongoConnectionString : process.env['MONGO_CONNECTION_STRING'];
         },
         port: function(){
             return process.env.PORT || 1337;

@@ -19,7 +19,7 @@ try{
     self.accountCtrl = require('./controllers/AccountController.js');
     self.lib = require('./helpers/lib.js');
     self.db = require('./database.js');
-    self.db.connect('anchor', initControllers(self.db));
+    self.db.connect((config !== undefined && config !== null) ? config.devDbName : 'anchor', initControllers(self.db));
     self.safeObjectId = s => ObjectId.isValid(s) ? new ObjectId(s) : null;
 
 
