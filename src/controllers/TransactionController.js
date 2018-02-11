@@ -26,6 +26,7 @@ transactionHandler = (function () {
                     }
                 } else {
                     if (transaction._id === '') delete transaction._id;
+                    if(typeof transaction.transDate === 'string') transaction.transDate = new Date(transaction.transDate);
                     db.add('Transaction', transaction, function(result){
                         monthCtrl.createNewMonthWithTransaction(userId, date, transaction, callback);
                     });
@@ -51,10 +52,7 @@ transactionHandler = (function () {
                     }
                 }
 
-                db.update('Month', {'userId': userId, 'monthNum': date.getMonth(), 'year': date.getFullYear()}, {'transactions': month.transactions, 'endingBal': monthCtrl.getEndingBal(month.startingBal, month.transactions)}, function(result){
-                    month = monthCtrl.sortMonthlyTransactions(month);
-                    lib.handleResult(month, callback)
-                });
+                monthCtrl.updateMonth(userId, month, callback);
             });
         }
 

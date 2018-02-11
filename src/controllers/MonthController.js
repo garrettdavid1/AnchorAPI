@@ -43,6 +43,8 @@ monthHandler = (function () {
                             month.startingBal = latestMonth.endingBal;
                         }
 
+                        month.endingBal = month.transactions.length === 0 ? month.startingBal : month.endingBal;
+
                         lib.handleResult(month, callback);
                     })
                 } else {
@@ -74,14 +76,14 @@ monthHandler = (function () {
                 var month = self.newMonth(userId, date.getMonth(), date.getFullYear(), prevMonthWithData.endingBal);
                 month.transactions.push(transaction);
                 month.endingBal = self.getEndingBal(month.startingBal, month.transactions);
-                month = getTotalEarningsAndExpenses(month);
+                month = self.getTotalEarningsAndExpenses(month);
                 db.add('Month', month);
                 lib.handleResult(month, callback);
             });
         }
 
         self.updateMonthWithTrans = function(userId, month, transaction, date, callback){
-            transaction.transDate = new Date(transaction.transDate);
+            transaction.transDate = typeof transaction.transDate === 'string' ? new Date(transaction.transDate) : transaction.transDate;
             if(month.transactions.length > 0){
                 var inserted = false;
                 for(var i = 0; i < month.transactions.length; i++){
@@ -116,7 +118,7 @@ monthHandler = (function () {
 
         self.updateMonth = function(userId, month, callback){
             month.endingBal = self.getEndingBal(month.startingBal, month.transactions);
-            month = getTotalEarningsAndExpenses(month);
+            month = self.getTotalEarningsAndExpenses(month);
             db.update('Month', {'userId': userId, 'monthNum': month.firstDayOfMonth.getMonth(), 'year': month.firstDayOfMonth.getFullYear()}, {'userId': userId, 'transactions': month.transactions, 'startingBal': month.startingBal, 'endingBal': month.endingBal, 'totalEarnings': month.totalEarnings, 'totalExpenses': month.totalExpenses}, function(result){
                 month = self.sortMonthlyTransactions(month);
                 lib.handleResult(month, callback);
@@ -163,23 +165,25 @@ monthHandler = (function () {
             return month;
         }
 
-        function getTotalEarningsAndExpenses(month){
+        self.getTotalEarningsAndExpenses = function(month){
             var totalExpenses = parseFloat(0);
             var totalEarnings = parseFloat(0);
 
+            var count = 1;
             month.transactions.forEach(function(trans){
                 if(trans.transType === 'expense'){
                     totalExpenses -= parseFloat(trans.transAmount);
                 } else{
                     totalEarnings += parseFloat(trans.transAmount);
                 }
+                count++;
             })
 
             month.totalExpenses = totalExpenses;
             month.totalEarnings = totalEarnings;
 
             return month;
-        }
+        };
     }
 
     var monthController;
@@ -200,6 +204,9 @@ monthHandler = (function () {
         getMonthData: function(userId, params, callback){
             return monthController.getMonthData(userId, params, callback);
         },
+        updateMonth: function(userId, month, callback){
+            return monthController.updateMonth(userId, month, callback);
+        },
         updateMonthWithTrans: function(userId, month, transaction, date, callback){
             return monthController.updateMonthWithTrans(userId, month, transaction, date, callback);
         },
@@ -211,6 +218,9 @@ monthHandler = (function () {
         },
         createNewMonthWithTransaction: function(userId, date, transaction, callback){
             return monthController.createNewMonthWithTransaction(userId, date, transaction, callback);
+        },
+        getTotalEarningsAndExpenses: function(month){
+            return monthController.getTotalEarningsAndExpenses(month);
         }
     }
 })();

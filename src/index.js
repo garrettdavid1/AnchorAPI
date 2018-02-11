@@ -187,8 +187,6 @@ app.get('/logout', function(req, res, next){
 
 var server = app.listen(lib.port(), function(){
     var host = server.address().address;
-    console.log('Host: ' + host);
     var port = server.address().port;
-    console.log('Port: ' + port);
     console.log('Anchor API running at http://%s:%s', host, port);
 });
